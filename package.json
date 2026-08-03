@@ -1,0 +1,56 @@
+{
+  "name": "superandom",
+  "version": "1.0.0",
+  "description": "Browser entropy SDK. Harvests randomness from pointer, keyboard and sensor activity, folds it with the platform CSPRNG, and emits a verifiable audit receipt. Zero network calls.",
+  "license": "MIT",
+  "author": "Nader Cserny",
+  "homepage": "https://github.com/ncserny/superandom",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ncserny/superandom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ncserny/superandom/issues"
+  },
+  "type": "module",
+  "main": "./build/index.mjs",
+  "module": "./build/index.mjs",
+  "types": "./build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "build",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "random",
+    "randomness",
+    "entropy",
+    "csprng",
+    "drbg",
+    "hmac-drbg",
+    "fortuna",
+    "crypto",
+    "browser"
+  ]
+}
