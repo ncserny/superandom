@@ -1,8 +1,11 @@
 name: publish
 
-# Publishing is driven by GitHub Releases. Cut a release tagged v1.2.3 and this
-# verifies, builds and publishes 1.2.3 to npm. Nothing publishes on a plain push
-# to main, so main can move without minting versions.
+# Publishing happens on a version tag, a published GitHub Release, or a manual
+# run with publish ticked. Nothing publishes on a plain push to main, so main can
+# move without minting versions.
+#
+# npm rejects republishing a version that already exists, so the version in
+# package.json is the real gate on what goes out.
 on:
   push:
     tags: ['v*']
@@ -10,10 +13,10 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: 'Pack and verify without publishing'
+      publish:
+        description: 'Publish to npm (off = pack and verify only)'
         type: boolean
-        default: true
+        default: false
 
 jobs:
   publish:
@@ -89,5 +92,5 @@ jobs:
       # Provenance is on here, unlike the manual 1.0.0 publish, because it needs
       # exactly this OIDC token to sign the attestation.
       - name: Publish
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
         run: npm publish --provenance --access public
