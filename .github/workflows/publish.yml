@@ -4,6 +4,8 @@ name: publish
 # verifies, builds and publishes 1.2.3 to npm. Nothing publishes on a plain push
 # to main, so main can move without minting versions.
 on:
+  push:
+    tags: ['v*']
   release:
     types: [published]
   workflow_dispatch:
@@ -49,7 +51,7 @@ jobs:
       # forgotten version bump silently republishes the previous version and
       # fails halfway through, or worse, publishes something mislabelled.
       - name: Check the tag matches package.json
-        if: github.event_name == 'release'
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           PKG="$(node -p "require('./package.json').version")"
@@ -87,5 +89,5 @@ jobs:
       # Provenance is on here, unlike the manual 1.0.0 publish, because it needs
       # exactly this OIDC token to sign the attestation.
       - name: Publish
-        if: github.event_name == 'release'
+        if: startsWith(github.ref, 'refs/tags/v')
         run: npm publish --provenance --access public
