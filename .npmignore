@@ -1,0 +1,14 @@
+# The presence of this file stops npm falling back to .gitignore when deciding
+# what to pack. That fallback is a trap here: .gitignore excludes build/, which
+# is exactly the directory that has to ship. The `files` whitelist in
+# package.json is the real allowlist; this file only carves things back out.
+
+# Test-only bundle. It re-exports the internals so the suite can exercise the
+# built artifact rather than a second compilation of the source. It is not
+# public API, it is not reachable through `exports`, and it should not add
+# 67 KB to everyone's node_modules.
+build/internal.mjs
+build/internal.d.ts
+
+node_modules
+*.tgz

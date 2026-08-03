@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { BASE58 } from '../build/internal.mjs';
+import { BASE58 } from './.generated/internal.mjs';
 import {
   makeGenerators,
   chiSquareUniform,

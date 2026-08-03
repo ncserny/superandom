@@ -10,8 +10,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, createHmac } from 'node:crypto';
 
-import { sha256, hmacSha256, hkdfExtract, hkdfExpand, Sha256 } from '../build/internal.mjs';
-import { toHex, fromHex, utf8, equal } from '../build/internal.mjs';
+import { sha256, hmacSha256, hkdfExtract, hkdfExpand, Sha256 } from './.generated/internal.mjs';
+import { toHex, fromHex, utf8, equal } from './.generated/internal.mjs';
 
 const hex = (bytes) => toHex(bytes);
 

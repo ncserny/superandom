@@ -21,7 +21,14 @@ import { battery, monobit, toBits } from './_stats.mjs';
 
 const ALPHA = 0.001;
 const RUNS = 10;
-const REQUIRED = 9;
+/**
+ * Each run is a battery of six tests at alpha = 0.001, so a correct generator
+ * fails a whole run about 0.6% of the time. Requiring 9 of 10 leaves roughly a
+ * 0.2% flake rate per test, and there are four of them: often enough to be
+ * annoying in CI, as it duly was. Requiring 8 of 10 drops that to about 1 in
+ * 40,000 while still failing a genuinely broken generator, which fails all ten.
+ */
+const REQUIRED = 8;
 const SAMPLE_BYTES = 1 << 20; // 1 MiB
 
 /** Run `attempt` ten times and require at least nine clean passes. */

@@ -1,0 +1,76 @@
+name: publish
+
+# Publishing is driven by GitHub Releases. Cut a release tagged v1.2.3 and this
+# verifies, builds and publishes 1.2.3 to npm. Nothing publishes on a plain push
+# to main, so main can move without minting versions.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack and verify without publishing'
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance: the workflow exchanges an OIDC token for a
+      # signed attestation linking the tarball to this commit and workflow.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci || npm install
+
+      - run: npm run typecheck
+
+      # Builds first, then runs the suite against the built artifact.
+      - run: npm test
+
+      # A release tagged v1.2.3 must contain version 1.2.3. Without this, a
+      # forgotten version bump silently republishes the previous version and
+      # fails halfway through, or worse, publishes something mislabelled.
+      - name: Check the tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          echo "tag=$TAG package.json=$PKG"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Release tag v$TAG does not match package.json version $PKG."
+            exit 1
+          fi
+
+      # The whole point of the library is that it never talks to the network.
+      # scripts/build.mjs already fails on a hit and integration.test.mjs asserts
+      # it too, but this is the last gate before bytes reach the registry.
+      - name: Re-assert the no-network guarantee on the tarball
+        run: |
+          npm pack
+          tar -xzf superandom-*.tgz
+          for api in fetch XMLHttpRequest WebSocket EventSource sendBeacon geolocation RTCPeerConnection; do
+            if grep -q "$api" package/build/index.mjs package/build/superandom-*.js; then
+              echo "::error::Tarball references $api. Refusing to publish."
+              exit 1
+            fi
+          done
+          echo "Tarball is clean."
+
+      - name: Show what would be published
+        run: npm pack --dry-run
+
+      - name: Publish
+        if: github.event_name == 'release'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

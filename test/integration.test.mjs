@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { create, createCore, verifyReceipt, VERSION, ALL_COLLECTORS } from '../build/internal.mjs';
+import { create, createCore, verifyReceipt, VERSION, ALL_COLLECTORS } from './.generated/internal.mjs';
 
 const buildDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'build');
 const manifest = JSON.parse(readFileSync(join(buildDir, 'manifest.json'), 'utf8'));

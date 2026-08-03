@@ -3,7 +3,7 @@
 Randomness harvested from the human at the keyboard, folded with the platform CSPRNG, with a verifiable audit receipt. One script tag, no dependencies, and **zero network calls, ever**.
 
 ```html
-<script src="https://nader.io/rng/superandom-v1.js"></script>
+<script src="https://nader.io/pkg/superandom/superandom-v1.js"></script>
 <script>
   superandom.randomInt(1, 7);        // a fair die
   superandom.shuffle(deck);          // an unbiased shuffle
@@ -75,7 +75,7 @@ Or pin the exact version with subresource integrity:
 
 ```html
 <script
-  src="https://nader.io/rng/superandom-1.0.0.js"
+  src="https://nader.io/pkg/superandom/superandom-1.0.0.js"
   integrity="sha384-LK1ufspJaGy2l0ZfuMYjcENpoV/gpolp5YLN01r4PxvgU998wCOKU4KFjea8g+Dc"
   crossorigin="anonymous"></script>
 ```

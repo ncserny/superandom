@@ -10,7 +10,7 @@ import {
   u8,
   u32le,
   utf8,
-} from '../build/internal.mjs';
+} from './.generated/internal.mjs';
 
 const ZERO32 = new Uint8Array(32);
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Estimator, aptCutoff, SOURCE_LIMITS } from '../build/internal.mjs';
+import { Estimator, aptCutoff, SOURCE_LIMITS } from './.generated/internal.mjs';
 
 const NO_LIMIT = { rateCapBitsPerSecond: Number.POSITIVE_INFINITY, crossOriginIsolated: false };
 

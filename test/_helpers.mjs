@@ -3,7 +3,7 @@
  * the `*.test.mjs` glob and get run as a suite.
  */
 
-import { Engine, Generators } from '../build/internal.mjs';
+import { Engine, Generators } from './.generated/internal.mjs';
 
 export function makeEngine(overrides = {}) {
   return new Engine({

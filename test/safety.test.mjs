@@ -10,7 +10,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Engine, NotReadyError, toHex } from '../build/internal.mjs';
+import { Engine, NotReadyError, toHex } from './.generated/internal.mjs';
 
 /** A platform stub with a fully predictable, replayable stream. */
 function fakePlatform(byteAt = (i) => (i * 37 + 11) & 0xff) {

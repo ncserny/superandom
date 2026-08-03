@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ReceiptLog, verifyReceipt, RECEIPT_VERSION, createCore, toHex } from '../build/internal.mjs';
+import { ReceiptLog, verifyReceipt, RECEIPT_VERSION, createCore, toHex } from './.generated/internal.mjs';
 
 function sampleLog() {
   const log = new ReceiptLog('session-1', 'https://example.test', 1_700_000_000_000);

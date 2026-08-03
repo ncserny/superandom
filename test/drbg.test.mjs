@@ -24,7 +24,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 
-import { HmacDrbg, toHex, fromHex, sha256, utf8 } from '../build/internal.mjs';
+import { HmacDrbg, toHex, fromHex, sha256, utf8 } from './.generated/internal.mjs';
 
 test('matches the RFC 6979 A.2.5 deterministic nonce for P-256 / SHA-256', () => {
   // RFC 6979 generates k with exactly the HMAC_DRBG construction:

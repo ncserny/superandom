@@ -17,7 +17,7 @@ import {
   createAmbientCollector,
   createCollector,
   ALL_COLLECTORS,
-} from '../build/internal.mjs';
+} from './.generated/internal.mjs';
 
 /** Counts listener registration so leaks are visible. */
 class FakeTarget {

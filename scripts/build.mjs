@@ -9,14 +9,15 @@
  *   superandom-v<major>.js       moving alias of the above, for demos only (cannot be SRI-pinned)
  *   index.mjs                    ESM entry for bundlers and npm
  *   index.d.ts                   types, emitted by tsc
- *   internal.mjs                 unsupported internals, for the test suite only
  *   manifest.json                versions, byte counts and SRI hashes
+ *
+ * plus test/.generated/internal.mjs, the unsupported internals the suite uses.
  *
  * Then verifies the shipped bundle makes no network calls and computes SRI
  * hashes. Pass --site-dir to also copy the browser artifacts somewhere they get
  * served, e.g. the nader.io Astro site:
  *
- *   node scripts/build.mjs --site-dir=/path/to/nader-io/assets/rng
+ *   node scripts/build.mjs --site-dir=/path/to/nader-io/assets/pkg/superandom
  */
 
 import { createHash } from 'node:crypto';
@@ -105,10 +106,17 @@ await esbuild.build({
 });
 
 // 3. Internal bundle, so tests exercise the built code rather than a second
-//    compilation of the same source. Not part of the public API.
+//    compilation of the same source.
+//
+//    Deliberately emitted outside build/. Anything under build/ is listed in
+//    package.json "files", and entries there cannot be excluded by .npmignore,
+//    so leaving it in build/ would ship 67 KB of test-only re-exports to every
+//    consumer.
+const testBuildDir = join(pkgDir, 'test', '.generated');
+mkdirSync(testBuildDir, { recursive: true });
 await esbuild.build({
   entryPoints: [join(pkgDir, 'src', 'internal.ts')],
-  outfile: join(buildDir, 'internal.mjs'),
+  outfile: join(testBuildDir, 'internal.mjs'),
   bundle: true,
   format: 'esm',
   target: ['es2020'],
@@ -158,8 +166,8 @@ console.log(`  ${iifeName}  ${(iifeBytes.length / 1024).toFixed(1)} KiB`);
 console.log(`  ${manifest.integrity[iifeName]}`);
 
 // 6. Optionally publish the browser artifacts wherever they get served. For
-//    nader.io that is assets/rng/, which Astro's publicDir maps to the site root,
-//    so assets/rng/x.js lands on https://nader.io/rng/x.js.
+//    nader.io that is assets/pkg/superandom/, which Astro's publicDir maps to the
+//    site root, so it lands on https://nader.io/pkg/superandom/x.js.
 if (siteDir) {
   mkdirSync(siteDir, { recursive: true });
   for (const f of [iifeName, `${iifeName}.map`, aliasName, 'manifest.json']) {
