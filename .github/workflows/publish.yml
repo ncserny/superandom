@@ -30,6 +30,14 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      # Trusted publishing (OIDC) needs npm 11.5.1 or newer, and Node 22 ships
+      # 10.9.x. Without this the publish step fails with an auth error that does
+      # not obviously point at the npm version.
+      - name: Use an npm new enough for trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - run: npm ci || npm install
 
       - run: npm run typecheck
@@ -69,8 +77,15 @@ jobs:
       - name: Show what would be published
         run: npm pack --dry-run
 
+      # Authenticated by npm trusted publishing: the id-token permission above
+      # lets npm exchange a GitHub OIDC token for a short-lived publish
+      # credential, so there is no NPM_TOKEN secret to leak or rotate. The
+      # trusted publisher is configured on npmjs.com against this repository and
+      # this filename, so renaming this file breaks publishing until npm is
+      # updated to match.
+      #
+      # Provenance is on here, unlike the manual 1.0.0 publish, because it needs
+      # exactly this OIDC token to sign the attestation.
       - name: Publish
         if: github.event_name == 'release'
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
