@@ -8,3 +8,7 @@
 export * from './encoding.js';
 export * from './sha256.js';
 export * from './drbg.js';
+export * from './types.js';
+export * from './accumulator.js';
+export * from './estimator.js';
+export * from './engine.js';
