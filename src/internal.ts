@@ -12,3 +12,4 @@ export * from './types.js';
 export * from './accumulator.js';
 export * from './estimator.js';
 export * from './engine.js';
+export * from './api.js';

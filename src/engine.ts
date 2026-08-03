@@ -16,6 +16,28 @@ const EXTRACT_SALT = utf8('superandom/v1/extract');
 const CONTEXT_DOMAIN = utf8('superandom/v1/context');
 const PERSONALIZATION = utf8('superandom/v1/drbg');
 
+/**
+ * Output is generated a block at a time and served from a buffer.
+ *
+ * Without this, a 4-byte draw costs a full DRBG generate plus the mandated
+ * post-generate Update, which is four HMAC invocations for four bytes. That is
+ * roughly two orders of magnitude more work than necessary and makes the SDK too
+ * slow to use as a Math.random() replacement in a render loop, which is exactly
+ * the use it is meant for.
+ *
+ * The fold is applied to the whole block at refill time, so the guarantee is
+ * unchanged: every byte handed out is still a DRBG byte XOR an independent
+ * platform byte. Served bytes are zeroed behind the cursor so a later state
+ * capture cannot recover them.
+ */
+const OUTPUT_BUFFER_BYTES = 1024;
+
+/**
+ * Web Crypto rejects a getRandomValues request for more than 65536 bytes, so
+ * the mask for a large output has to be drawn in pieces.
+ */
+const MAX_PLATFORM_DRAW = 65536;
+
 /** Reseed once this many newly credited bits have accumulated. */
 const RESEED_CREDIT_BITS = 128;
 /** Reseed after this much output, regardless of new entropy. */
@@ -80,6 +102,9 @@ export class Engine {
   private creditedAtLastReseed = 0;
   private lastReseedAt: number;
   private materialSinceReseed = false;
+
+  private buffer: Uint8Array = new Uint8Array(0);
+  private bufferOffset = 0;
 
   private readonly waiters: { need: number; resolve: () => void }[] = [];
 
@@ -213,20 +238,57 @@ export class Engine {
 
     this.maybeReseed();
 
-    const out = this.drbg.generate(length);
-
-    if (this.options.foldMode === 'always') {
-      const mask = new Uint8Array(length);
-      this.platform.getRandomValues(mask);
-      for (let i = 0; i < length; i++) {
-        out[i] = (out[i] as number) ^ (mask[i] as number);
+    let out: Uint8Array;
+    if (length >= OUTPUT_BUFFER_BYTES) {
+      // Large requests go straight through rather than dribbling through a
+      // smaller buffer.
+      out = this.drbg.generate(length);
+      this.fold(out);
+    } else {
+      out = new Uint8Array(length);
+      let done = 0;
+      while (done < length) {
+        if (this.bufferOffset >= this.buffer.length) this.refill();
+        const take = Math.min(length - done, this.buffer.length - this.bufferOffset);
+        out.set(this.buffer.subarray(this.bufferOffset, this.bufferOffset + take), done);
+        // Zero behind the cursor: bytes already handed out must not linger.
+        this.buffer.fill(0, this.bufferOffset, this.bufferOffset + take);
+        this.bufferOffset += take;
+        done += take;
       }
-      wipe(mask);
     }
 
     this.bytesGenerated += length;
     this.bytesSinceReseed += length;
     return out;
+  }
+
+  private refill(): void {
+    const block = this.drbg.generate(OUTPUT_BUFFER_BYTES);
+    this.fold(block);
+    this.buffer = block;
+    this.bufferOffset = 0;
+  }
+
+  /**
+   * XOR in an independent, freshly drawn platform mask. Drawn after generate(),
+   * never fed back into the pool. See the class comment on randomBytes.
+   */
+  private fold(bytes: Uint8Array): void {
+    if (this.options.foldMode !== 'always') return;
+
+    // getRandomValues rejects any view longer than 65536 bytes, so the mask has
+    // to be drawn in chunks. Each chunk is an independent draw, which is exactly
+    // what the XOR argument wants anyway.
+    for (let at = 0; at < bytes.length; at += MAX_PLATFORM_DRAW) {
+      const end = Math.min(at + MAX_PLATFORM_DRAW, bytes.length);
+      const mask = new Uint8Array(end - at);
+      this.platform.getRandomValues(mask);
+      for (let i = 0; i < mask.length; i++) {
+        bytes[at + i] = (bytes[at + i] as number) ^ (mask[i] as number);
+      }
+      wipe(mask);
+    }
   }
 
   private maybeReseed(): void {
@@ -253,6 +315,12 @@ export class Engine {
     const seed = this.seedMaterial();
     this.drbg.reseed(seed);
     wipe(seed);
+
+    // Drop buffered output: it predates the new state, and callers reasonably
+    // expect a reseed to take effect on the very next draw.
+    wipe(this.buffer);
+    this.buffer = new Uint8Array(0);
+    this.bufferOffset = 0;
 
     const credited = this.estimator.creditedBits();
     this.options.onReseed?.({

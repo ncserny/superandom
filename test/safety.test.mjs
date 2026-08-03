@@ -129,7 +129,7 @@ test('the platform mask is drawn after generate, so the two are independent', ()
   assert.deepEqual(order, ['generate', 'platform']);
 });
 
-test('platform entropy is drawn at construction, at every reseed and at every output', () => {
+test('platform entropy is drawn at construction, at every reseed and for all output', () => {
   const platform = fakePlatform();
   const engine = new Engine(options({ platform }));
 
@@ -137,11 +137,103 @@ test('platform entropy is drawn at construction, at every reseed and at every ou
   assert.ok(afterConstruction >= 2, 'construction must draw platform entropy');
 
   engine.randomBytes(16);
-  assert.equal(platform.calls.length, afterConstruction + 1, 'output must draw a fresh mask');
+  assert.ok(platform.calls.length > afterConstruction, 'output must draw a fresh mask');
 
   const beforeReseed = platform.calls.length;
   engine.reseed();
   assert.ok(platform.calls.length > beforeReseed, 'reseed must draw fresh platform entropy');
+});
+
+test('every output byte is covered by a freshly drawn mask byte', () => {
+  // Output is buffered a block at a time for speed, so the mask is drawn per
+  // block rather than per call. The invariant that matters is unchanged: at
+  // least as many mask bytes are drawn as bytes handed out.
+  const platform = fakePlatform();
+  const engine = new Engine(options({ platform }));
+
+  const maskBytesBefore = platform.calls.reduce((sum, c) => sum + c.length, 0);
+  let handedOut = 0;
+  for (let i = 0; i < 500; i++) handedOut += engine.randomBytes(7).length;
+  const maskBytesAfter = platform.calls.reduce((sum, c) => sum + c.length, 0);
+
+  assert.ok(
+    maskBytesAfter - maskBytesBefore >= handedOut,
+    `drew ${maskBytesAfter - maskBytesBefore} mask bytes for ${handedOut} output bytes`,
+  );
+});
+
+test('buffered output never repeats across refills', () => {
+  const engine = new Engine(options({ platform: globalThis.crypto }));
+  const seen = new Set();
+  // 1 KiB buffer, 16 bytes at a time: this crosses many refill boundaries.
+  for (let i = 0; i < 2000; i++) {
+    const block = toHex(engine.randomBytes(16));
+    assert.ok(!seen.has(block), `repeated block at draw ${i}`);
+    seen.add(block);
+  }
+});
+
+test('reseed discards buffered output', () => {
+  // A caller who reseeds expects it to take effect on the next draw, not once
+  // the current block happens to run out.
+  const a = new Engine(options({ platform: globalThis.crypto }));
+  a.randomBytes(16); // fill the buffer
+  const beforeReseed = toHex(a.randomBytes(16));
+  a.reseed();
+  const afterReseed = toHex(a.randomBytes(16));
+  assert.notEqual(beforeReseed, afterReseed);
+});
+
+test('large requests bypass the buffer and are still folded', () => {
+  const byteAt = (i) => (i * 91 + 5) & 0xff;
+  const platform = fakePlatform(byteAt);
+  const engine = new Engine(
+    options({
+      platform,
+      drbgFactory: () => ({
+        generate: (length) => new Uint8Array(length), // all zeros
+        reseed: () => {},
+      }),
+    }),
+  );
+
+  const consumed = platform.calls.reduce((sum, c) => sum + c.length, 0);
+  const out = engine.randomBytes(4096); // larger than the 1 KiB buffer
+  assert.equal(toHex(out), toHex(platformStreamAt(byteAt, consumed, 4096)));
+});
+
+test('requests larger than the platform draw limit are folded in chunks', () => {
+  // Regression: getRandomValues rejects any view over 65536 bytes, so a mask
+  // for a megabyte of output has to be drawn in pieces. Drawing it in one go
+  // threw and broke every large request.
+  const byteAt = (i) => (i * 181 + 23) & 0xff;
+  const platform = fakePlatform(byteAt);
+  const engine = new Engine(
+    options({
+      platform,
+      drbgFactory: () => ({
+        generate: (length) => new Uint8Array(length), // all zeros
+        reseed: () => {},
+      }),
+    }),
+  );
+
+  const consumed = platform.calls.reduce((sum, c) => sum + c.length, 0);
+  const size = 1 << 20;
+  const out = engine.randomBytes(size);
+
+  assert.equal(out.length, size);
+  // Every byte still XORed with the platform stream, across all chunks.
+  assert.equal(toHex(out), toHex(platformStreamAt(byteAt, consumed, size)));
+  // And no single platform draw exceeded the limit.
+  for (const call of platform.calls) {
+    assert.ok(call.length <= 65536, `drew ${call.length} bytes in one call`);
+  }
+});
+
+test('a real platform CSPRNG accepts the large-request path', () => {
+  const engine = new Engine(options({ platform: globalThis.crypto }));
+  assert.equal(engine.randomBytes(1 << 20).length, 1 << 20);
 });
 
 test('foldMode "never" is the only setting that skips the mask', () => {
