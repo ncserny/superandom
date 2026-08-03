@@ -75,8 +75,8 @@ Or pin the exact version with subresource integrity:
 
 ```html
 <script
-  src="https://nader.io/pkg/superandom/superandom-1.0.0.js"
-  integrity="sha384-LK1ufspJaGy2l0ZfuMYjcENpoV/gpolp5YLN01r4PxvgU998wCOKU4KFjea8g+Dc"
+  src="https://nader.io/pkg/superandom/superandom-1.0.1.js"
+  integrity="sha384-YZMHSN0+zcHZgEpDBzpLUWIWv1i0UzlHLvhb/v3IC8T2J4tZfBfaHw4Gm8ueFs8u"
   crossorigin="anonymous"></script>
 ```
 

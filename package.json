@@ -1,6 +1,6 @@
 {
   "name": "superandom",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Browser entropy SDK. Harvests randomness from pointer, keyboard and sensor activity, folds it with the platform CSPRNG, and emits a verifiable audit receipt. Zero network calls.",
   "license": "MIT",
   "author": "Nader Cserny",

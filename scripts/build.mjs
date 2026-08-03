@@ -72,6 +72,19 @@ function sri(bytes) {
   return `sha384-${createHash('sha384').update(bytes).digest('base64')}`;
 }
 
+// The exported VERSION constant is hand-written, so it can drift from
+// package.json on a release. It did, on the very first version bump. Catch it
+// here rather than shipping a package that misreports its own version.
+const indexSource = readFileSync(join(pkgDir, 'src', 'index.ts'), 'utf8');
+const declaredVersion = indexSource.match(/export const VERSION = '([^']+)'/)?.[1];
+if (declaredVersion !== version) {
+  console.error(
+    `\n  src/index.ts exports VERSION '${declaredVersion}' but package.json says '${version}'.`,
+  );
+  console.error('  Update the constant to match before releasing.\n');
+  process.exit(1);
+}
+
 rmSync(buildDir, { recursive: true, force: true });
 mkdirSync(buildDir, { recursive: true });
 
