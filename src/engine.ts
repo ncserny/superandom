@@ -374,4 +374,8 @@ export class Engine {
   get counters(): { reseeds: number; bytesGenerated: number } {
     return { reseeds: this.reseedIndex, bytesGenerated: this.bytesGenerated };
   }
+
+  get foldMode(): FoldMode {
+    return this.options.foldMode;
+  }
 }

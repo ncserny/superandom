@@ -13,3 +13,7 @@ export * from './accumulator.js';
 export * from './estimator.js';
 export * from './engine.js';
 export * from './api.js';
+export * from './receipt.js';
+export * from './rng.js';
+export * from './sources/index.js';
+export { create, createCore, VERSION } from './index.js';
